@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- ## for client-side less
+  <link rel="stylesheet/less" type="text/css" href="/theme/css/style.less">
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/less.js/1.7.3/less.min.js" type="text/javascript"></script>
+  -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+  <link rel="stylesheet" type="text/css" href="/theme/css/style.css">
+  <link rel="stylesheet" type="text/css" href="/theme/css/pygments.css">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Grace Hatamyar">
+  <meta name="description" content="Posts and writings by Grace Hatamyar">
+
+
+<meta name="keywords" content="Django, GeoDjango, Mapbox, Leaflet">
+
+  <title>
+    Grace Hatamyar
+&ndash; Mapping with GeoDjango, Django-Leaflet and Mapbox  </title>
+
+</head>
+<body>
+  <aside>
+    <div id="user_meta">
+      <h2><a href="/">Grace Hatamyar</a></h2>
+      <p></p>
+      <ul>
+        
+        <li><a href="/pages/about.html">About</a></li>
+        <li><a href="/pages/projects.html">Projects</a></li>
+        
+        <li id="social">
+          <a href="http://github.com/gatita"><i class="fa fa-github"></i></a>
+          <a href="http://linkedin.com/in/ghatamyar"><i class="fa fa-linkedin"></i></a>
+          <a href="http://twitter.com/hatamyar"><i class="fa fa-twitter"></i></a>
+          <a href="mailto:grace@hatamyar.com"</a><i class="fa fa-envelope"></i></a>
+        </li>
+      </ul>
+    </div>
+  </aside>
+  <main>
+<article>
+  <div class="article_title">
+    <h3><a href="/mapping-with-geodjango-django-leaflet-and-mapbox.html">Mapping with GeoDjango, Django-Leaflet and Mapbox</a></h3>
+  </div>
+  <div class="article_text">
+    <p>I'm currently trying my hand at building a GeoDjango application centered
+around spatially enabled data. While working through tutorials is helpful,
+for me, actually absorbing something new often requires getting my hands dirty, 
+struggling through problems, and eventually having one, or many, "Ah-ha!" moments 
+along the way. So, I've decided to build an app I'm calling "Lost and Hound" for now, 
+and will probably call something else later once I receive a 
+complaint for copyright infringement. </p>
+<p>This post describes the first step of this project - getting a map on the page that 
+utilizes geolocation when initialized using GeoDjango, Leaflet and Mapbox. The section below
+gives some background on the project, but if you'd rather get 
+right to it, skip to the section on <a href="#getting-started">Setting up the GeoDjango Project</a>.</p>
+<h4>A Bit of Background</h4>
+<p>Its fairly common to see cats wandering around my neighborhood.
+Most seem to be enjoying a leisurely afternoon stroll, but occasionally I wonder
+if they're lost. Eureka! Wouldn't it be great to be able to check if the pet
+you're seeing looks just like a pet reported as missing in your neighborhood? Even better,
+to notify the owner you've seen a pet with their pet's characteristics out and about?
+Maybe not, but this project will serve my purposes
+of learning a bit more about GIS web applications nicely, so I'm gonna run with it.</p>
+<p>In its most basic form, Lost and Hound is a location enabled message board where a 
+user can create one of two types of posts:</p>
+<p>A 'lost' post - rather obviously, for pet owners who've lost a pet. Lost posts will contain
+a photo of said pet accompanied by various descriptive characteristics. </p>
+<p>A 'found' post - basically the same thing, but created by someone who's seen 
+a pet on the streets that may be lost.</p>
+<p>When created, both types of posts will add a marker to the map shown at the site's index, 
+indicating the location where the post was generated. When visiting the site, 
+this map will open to the user's location via geolocation, or, for the privacy inclined, 
+an address search will also pan the map to a certain area -
+thereby making it easy to quickly see the pets lost or possibly found in your hood.</p>
+<p>In addition, I'd like to implement a feature for registered users to sign up
+to receive a text or email notification when a pet matching their pet's characteristics 
+is found within a 5 mile radius of their house. </p>
+<p>But, first things first. I've never used GeoDjango, or really any of the other tools
+I'll be using to do this. Outside of a course I took
+on ArcGIS in college, my prior mapping experience comes mostly from my final project
+at Code Fellows, for which we used <a href="http://d3js.org/">D3.js</a> to create geographical data visualizations. 
+So, I'll need to break this problem down into smaller problems, and start
+from the very beginning: getting a map on the page that utilizes geolocation 
+when initialized (that's what I'll cover in this post).</p>
+<p>My choice to use GeoDjango here is relatively arbitrary. I mostly just want to use it, but
+for this part of the project its probably simpler not to use a framework at all. The map
+data comes from OpenStreetMap, and I'll also be using the Leaflet API (via Django-Leaflet)
+to embed a map in my app and make it interactive and Mapbox tiles to make it pretty(-er).</p>
+<h4>Setting up the GeoDjango Project <a name="getting-started"></a></h4>
+<p>Although I won't go into detail on setting up a GeoDjango project, (there's an official <a href="https://docs.djangoproject.com/en/1.8/ref/contrib/gis/tutorial/">tutorial</a>
+that will get you there better than I could), there are a couple of things to mention.</p>
+<h5>Creating a Spatial Database</h5>
+<p>I use Mac OS and <a href="http://postgresapp.com/">Postgres.app</a>, which comes
+with PostGIS preinstalled \o/. If you do too, one thing to note is you won't need to 
+use a spatial database template to create your database. </p>
+<p>Just create your database as you would any other: </p>
+<div class="highlight"><pre>~<span class="nv">$ </span>createdb lostandhound
+</pre></div>
+
+
+<p>open that database with psql:</p>
+<div class="highlight"><pre>~<span class="nv">$ </span>psql lostandhound
+psql <span class="o">(</span>9.4.1<span class="o">)</span>
+Type <span class="s2">&quot;help&quot;</span> <span class="k">for</span> help.
+
+<span class="nv">lostandhound</span><span class="o">=</span><span class="c"># </span>
+</pre></div>
+
+
+<p>and enable spatial functionality:</p>
+<div class="highlight"><pre><span class="nv">lostandhound</span><span class="o">=</span><span class="c"># CREATE EXTENSION postgis;</span>
+CREATE EXTENSION
+<span class="nv">lostandhound</span><span class="o">=</span><span class="c"># </span>
+</pre></div>
+
+
+<h5>Creating an Index View</h5>
+<p>For this step of the project, all I'll be doing is getting started on the
+home page. I've already set up a Waypoints app within my lost and hound project, but
+I won't be doing anything with it yet. Since my index view doesn't neatly correspond 
+with what the waypoints application will be used for, 
+I'd rather put it in the root of the project.
+This could be done by creating a views.py file at the same
+level as my settings.py in the lost_and_hound project folder:</p>
+<div class="highlight"><pre>├── lost_and_hound
+│   ├── lost_and_hound
+│   │   ├── __init__.py
+│   │   ├── settings.py
+│   │   ├── static
+│   │   │   └── css
+│   │   │       └── style.css
+│   │   ├── templates
+│   │   │   ├── base.html
+│   │   │   └── index.html
+│   │   ├── urls.py
+│   │   ├── wsgi.py
+│   ├── manage.py
+│   └── waypoints
+│       ├── __init__.py
+│       ├── admin.py
+│       ├── migrations
+│       │   ├── __init__.py
+│       ├── models.py
+│       ├── tests.py
+│       └── views.py
+└── requirements.txt
+</pre></div>
+
+
+<p>but, since for now all of the dynamic content will be handled in my template 
+(this will change once I need to grab post coordinates from my db and map them), 
+I'll use Django's TemplateView directly, a Generic Class Based View which 
+basically just renders a given template when a specific view is requested, 
+and spares me from having to actually write any new views.</p>
+<p>In urls.py, import TemplateView from django.views.generic,
+and add the following to your urlpatterns:</p>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">django.conf.urls</span> <span class="kn">import</span> <span class="n">include</span><span class="p">,</span> <span class="n">url</span>
+<span class="kn">from</span> <span class="nn">django.contrib</span> <span class="kn">import</span> <span class="n">admin</span>
+<span class="kn">from</span> <span class="nn">django.views.generic</span> <span class="kn">import</span> <span class="n">TemplateView</span>
+
+<span class="n">urlpatterns</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">url</span><span class="p">(</span><span class="s">r&#39;^$&#39;</span><span class="p">,</span> <span class="n">TemplateView</span><span class="o">.</span><span class="n">as_view</span><span class="p">(</span><span class="n">template_name</span><span class="o">=</span><span class="s">&#39;index.html&#39;</span><span class="p">),</span>
+        <span class="n">name</span><span class="o">=</span><span class="s">&#39;index&#39;</span><span class="p">),</span>
+    <span class="n">url</span><span class="p">(</span><span class="s">r&#39;^admin/&#39;</span><span class="p">,</span> <span class="n">include</span><span class="p">(</span><span class="n">admin</span><span class="o">.</span><span class="n">site</span><span class="o">.</span><span class="n">urls</span><span class="p">)),</span>
+<span class="p">]</span>
+</pre></div>
+
+
+<p>The as_view() classmethod is what makes the TemplateView
+callable, so when the index page is requested, it will be 
+matched to the index view, which is really just a callable version of TemplateView 
+that renders the index.html template upon request.</p>
+<p>Now to the mapping...</p>
+<h4>Initializing a map with Django-Leaflet and Mapbox</h4>
+<p>I'm using <a href="https://github.com/makinacorpus/django-leaflet">Django-Leaflet</a>
+to embed <a href="http://leafletjs.com/">Leaflet</a> in this project, mostly because it sounds 
+nice to be able to control my map's settings in my Django settings. 
+So far, I haven't actually elected to do this, but I'll get into that later.</p>
+<p>After installing, adding 
+'leaflet' to your list of installed apps in settings.py, and creating a simple
+base template:</p>
+<div class="highlight"><pre><span class="cp">&lt;!DOCTYPE html&gt;</span>
+
+{% load staticfiles %}
+
+<span class="nt">&lt;html&gt;</span>
+<span class="nt">&lt;head&gt;</span>
+    <span class="nt">&lt;link</span> <span class="na">href=</span><span class="s">&quot;{% static &#39;css/style.css&#39; %}&quot;</span> <span class="na">rel=</span><span class="s">&quot;stylesheet&quot;</span> <span class="na">type=</span><span class="s">&quot;text/css&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;title&gt;</span>Lost and Hound<span class="nt">&lt;/title&gt;</span>
+    {% block head %}
+    {% endblock %}
+<span class="nt">&lt;/head&gt;</span>
+<span class="nt">&lt;body&gt;</span>
+    {% block content %}
+    {% endblock %}
+    <span class="nt">&lt;footer&gt;</span>
+        <span class="nt">&lt;p&gt;</span><span class="ni">&amp;copy;</span> 2015 Grace Hatamyar<span class="nt">&lt;/p&gt;</span>
+    <span class="nt">&lt;/footer&gt;</span>
+    {% block script %}
+    {% endblock %}
+<span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+
+<p>We're ready to put together an index template, which is where our map will be
+initialized. This will extend our base template, then add the leaflet library with
+Django-Leaflet tags:</p>
+<div class="highlight"><pre>{% extends &#39;base.html&#39; %}
+{% load leaflet_tags %}
+
+{%  block head %}
+    {% leaflet_js %}
+    {% leaflet_css %}
+{%  endblock %}
+</pre></div>
+
+
+<p>In the content block, I can initialize my map using the leaflet_map tag,
+and providing a name:</p>
+<div class="highlight"><pre>{% block content %}
+    {% leaflet_map &quot;map&quot; callback=&quot;mapInit&quot; %}
+{% endblock %}
+</pre></div>
+
+
+<p>This also sets a callback function 'mapInit', which I'll use to customize how
+my map looks and what it does when initialized. That function will be
+written in the script block of my template:</p>
+<div class="highlight"><pre>{% block script %}
+    <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/javascript&quot;</span><span class="nt">&gt;</span>
+
+        <span class="kd">function</span> <span class="nx">mapInit</span><span class="p">(</span><span class="nx">map</span><span class="p">,</span> <span class="nx">options</span><span class="p">)</span> <span class="p">{</span>
+
+            <span class="nx">L</span><span class="p">.</span><span class="nx">tileLayer</span><span class="p">(</span><span class="s1">&#39;https://api.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.png?access_token={{ mapbox_key }}&#39;</span><span class="p">,</span> <span class="p">{</span>
+                <span class="nx">attribution</span><span class="o">:</span> <span class="s1">&#39;&lt;a href=&quot;http://creativecommons.org/licenses/by-sa/2.0/&quot;&gt;CC-BY-SA&lt;/a&gt;, Imagery © &lt;a href=&quot;http://mapbox.com&quot;&gt;Mapbox&lt;/a&gt;&#39;</span><span class="p">,</span>
+            <span class="p">}).</span><span class="nx">addTo</span><span class="p">(</span><span class="nx">map</span><span class="p">);</span>
+
+            <span class="nx">map</span><span class="p">.</span><span class="nx">setView</span><span class="p">([</span><span class="mf">47.61264</span><span class="p">,</span> <span class="o">-</span><span class="mf">122.32109</span><span class="p">],</span> <span class="mi">11</span><span class="p">);</span>
+
+        <span class="p">};</span>
+
+    <span class="nt">&lt;/script&gt;</span>   
+{% endblock %}
+</pre></div>
+
+
+<p>Since Django-leaflet has already initialized the map for us, all I'm doing is adding
+a tile layer to my map (aptly called 'map' here), by passing in the url for the tiles
+I want to use - in this case, mapbox.streets. Note that you'll need to provide
+a mapbox access key in this url. You could hard code this after 'access_token=' in
+the url string, or as I've done, use a template variable to get this in the right place.
+I've stored this variable in settings.py:</p>
+<div class="highlight"><pre><span class="c"># Mapbox API Key</span>
+<span class="n">MAPBOX_KEY</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;LH_MAPBOX_KEY&#39;</span><span class="p">)</span>
+</pre></div>
+
+
+<p>which grabs the variable string from my .bash_profile using the os module.</p>
+<p>I can then use this variable in urls.py by importing it from settings,
+and adding it as an extra keyword argument to the url() function
+for the index view:</p>
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">settings</span> <span class="kn">import</span> <span class="n">MAPBOX_KEY</span>
+
+<span class="n">urlpatterns</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">url</span><span class="p">(</span><span class="s">r&#39;^$&#39;</span><span class="p">,</span> <span class="n">TemplateView</span><span class="o">.</span><span class="n">as_view</span><span class="p">(</span><span class="n">template_name</span><span class="o">=</span><span class="s">&#39;index.html&#39;</span><span class="p">),</span>
+        <span class="p">{</span><span class="s">&#39;mapbox_key&#39;</span><span class="p">:</span> <span class="n">MAPBOX_KEY</span><span class="p">},</span>
+        <span class="n">name</span><span class="o">=</span><span class="s">&#39;index&#39;</span><span class="p">),</span>
+    <span class="n">url</span><span class="p">(</span><span class="s">r&#39;^admin/&#39;</span><span class="p">,</span> <span class="n">include</span><span class="p">(</span><span class="n">admin</span><span class="o">.</span><span class="n">site</span><span class="o">.</span><span class="n">urls</span><span class="p">)),</span>
+<span class="p">]</span>
+</pre></div>
+
+
+<p>I could have also done this by utilizing the LEAFLET_CONFIG capability
+of Django-Leaflet in my settings.py, and including the key in an options dict:</p>
+<div class="highlight"><pre><span class="n">LEAFLET_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&#39;TILES&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="n">name</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">options</span><span class="p">)]</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>but I prefer to keep this rather long url in my html template.</p>
+<p>This line:</p>
+<div class="highlight"><pre><span class="nx">map</span><span class="p">.</span><span class="nx">setView</span><span class="p">([</span><span class="mf">47.61264</span><span class="p">,</span> <span class="o">-</span><span class="mf">122.32109</span><span class="p">],</span> <span class="mi">11</span><span class="p">);</span>
+</pre></div>
+
+
+<p>just sets my map to open on arbitrarily chosen coordinates in Seattle, and
+the level of zoom I'd like to see.</p>
+<h4>Using Geolocation with Leaflet</h4>
+<p>In our mapInit function above, we can now use the Leaflet API normally.
+This is great, because implementing geolocation with Leaflet couldn't be easier.
+Just add a call to the locate method:</p>
+<div class="highlight"><pre><span class="nx">map</span><span class="p">.</span><span class="nx">locate</span><span class="p">({</span><span class="nx">setView</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span> <span class="nx">maxZoom</span><span class="o">:</span> <span class="mi">15</span><span class="p">});</span>
+</pre></div>
+
+
+<p>which sets the view to the user's location once
+they agree to share, as well as the maximum zoom level.</p>
+<p>My entire mapInit function now looks like so:</p>
+<div class="highlight"><pre>{% block script %}
+    <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/javascript&quot;</span><span class="nt">&gt;</span>
+
+        <span class="kd">function</span> <span class="nx">mapInit</span><span class="p">(</span><span class="nx">map</span><span class="p">,</span> <span class="nx">options</span><span class="p">)</span> <span class="p">{</span>
+
+            <span class="nx">L</span><span class="p">.</span><span class="nx">tileLayer</span><span class="p">(</span><span class="s1">&#39;https://api.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.png?access_token={{ mapbox_key }}&#39;</span><span class="p">,</span> <span class="p">{</span>
+                <span class="nx">attribution</span><span class="o">:</span> <span class="s1">&#39;&lt;a href=&quot;http://creativecommons.org/licenses/by-sa/2.0/&quot;&gt;CC-BY-SA&lt;/a&gt;, Imagery © &lt;a href=&quot;http://mapbox.com&quot;&gt;Mapbox&lt;/a&gt;&#39;</span><span class="p">,</span>
+            <span class="p">}).</span><span class="nx">addTo</span><span class="p">(</span><span class="nx">map</span><span class="p">);</span>
+
+            <span class="nx">map</span><span class="p">.</span><span class="nx">setView</span><span class="p">([</span><span class="mf">47.61264</span><span class="p">,</span> <span class="o">-</span><span class="mf">122.32109</span><span class="p">],</span> <span class="mi">11</span><span class="p">);</span>
+
+            <span class="nx">map</span><span class="p">.</span><span class="nx">locate</span><span class="p">({</span><span class="nx">setView</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span> <span class="nx">maxZoom</span><span class="o">:</span> <span class="mi">15</span><span class="p">});</span>
+        <span class="p">};</span>
+
+    <span class="nt">&lt;/script&gt;</span>   
+{% endblock %}
+</pre></div>
+
+
+<p>And, after starting the development server, and navigating to the index,
+the map shows up :)</p>
+<p><img alt="Base Map" src="/images/map.png" /></p>
+  </div>
+  <div class="article_meta">
+    <p>Posted on: Sun 18 October 2015</p>
+    <p>Category: <a href="/category/mapping.html">Mapping</a>
+ &ndash; Tags:
+      <a href="/tag/django.html">Django</a>,      <a href="/tag/geodjango.html">GeoDjango</a>,      <a href="/tag/mapbox.html">Mapbox</a>,      <a href="/tag/leaflet.html">Leaflet</a>    </p>
+  </div>
+
+
+</article>
+
+  <div id="ending_message">
+      <p>&copy; Grace Hatamyar. Built using <a href="http://getpelican.com" target="_blank">Pelican</a>. Base theme by <a href="https://github.com/gfidente/pelican-svbhack" target="_blank">Giulio Fidente</a> with <a href="https://github.com/gatita/pelican-svbhack" target="_blank">modifications</a>.</p>
+  </div>
+  </main>
+</body>
+</html>
