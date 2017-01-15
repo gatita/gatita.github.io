@@ -48,50 +48,12 @@
     <h3><a href="/mapping-with-geodjango-django-leaflet-and-mapbox.html">Mapping with GeoDjango, Django-Leaflet and Mapbox</a></h3>
   </div>
   <div class="article_text">
-    <p>I'm currently trying my hand at building a GeoDjango application centered
-around spatially enabled data. While working through tutorials is helpful,
-for me, actually absorbing something new often requires getting my hands dirty, 
-struggling through problems, and eventually having one, or many, "Ah-ha!" moments 
-along the way. So, I've decided to build an app I'm calling "Lost and Hound" for now, 
-and will probably call something else later once I receive a 
-complaint for copyright infringement. </p>
-<p>This post describes the first step of this project - getting a map on the page that 
-utilizes geolocation when initialized using GeoDjango, Leaflet and Mapbox. The section below
-gives some background on the project, but if you'd rather get 
-right to it, skip to the section on <a href="#getting-started">Setting up the GeoDjango Project</a>.</p>
-<h4>A Bit of Background</h4>
-<p>Its fairly common to see cats wandering around my neighborhood.
-Most seem to be enjoying a leisurely afternoon stroll, but occasionally I wonder
-if they're lost. Eureka! Wouldn't it be great to be able to check if the pet
-you're seeing looks just like a pet reported as missing in your neighborhood? Even better,
-to notify the owner you've seen a pet that looks just like theirs out and about?
-Maybe not, but this project will serve my purposes
-of learning a bit more about GIS web applications nicely, so I'm gonna run with it.</p>
-<p>In its most basic form, Lost and Hound is a location enabled message board where a 
-user can create one of two types of posts:</p>
-<p>A 'lost' post - rather obviously, for pet owners who've lost a pet. Lost posts will contain
-a photo of said pet accompanied by various descriptive characteristics. </p>
-<p>A 'found' post - basically the same thing, but created by someone who's seen 
-a pet on the streets that may be lost.</p>
-<p>When created, both types of posts will add a marker to the map shown at the site's index, 
-indicating the location where the post was generated. When visiting the site, 
-this map will open to the user's location via geolocation, or, for the privacy inclined, 
-an address search will also pan the map to a certain area -
-thereby making it easy to quickly see the pets lost or possibly found in your hood.</p>
-<p>In addition, I'd like to implement a feature for registered users to sign up
-to receive a text or email notification when a pet matching their pet's characteristics 
-is found within a 5 mile radius of their house. </p>
-<p>But, first things first. I've never used GeoDjango, or really any of the other tools
-I'll be using to do this. Outside of a course I took
-on ArcGIS in college, my prior mapping experience comes mostly from my final project
-at Code Fellows, for which we used <a href="http://d3js.org/">D3.js</a> to create geographical data visualizations. 
-So, I'll need to break this problem down into smaller problems, and start
-from the very beginning: getting a map on the page that utilizes geolocation 
-when initialized (that's what I'll cover in this post).</p>
-<p>My choice to use GeoDjango here is relatively arbitrary. I mostly just want to use it, but
-for this part of the project its probably simpler not to use a framework at all. The map
-data comes from OpenStreetMap, and I'll also be using the Leaflet API (via Django-Leaflet)
-to embed a map in my app and make it interactive and Mapbox tiles to make it pretty(-er).</p>
+    <p>I'm currently working on a GIS Web application to learn about working
+with spatial data. This post describes the first step of this project - getting a map on a
+webpage that utilizes geolocation when initialized. I'm using GeoDjango as a
+framework (though for this part of the project, it's not really necessary), and the map
+data comes from OpenStreetMap. I'll also be using the Leaflet API (via Django-Leaflet)
+to embed the map in my app and make it interactive and Mapbox tiles to make it pretty(-er).</p>
 <h4>Setting up the GeoDjango Project <a name="getting-started"></a></h4>
 <p>Although I won't go into detail on setting up a GeoDjango project, (there's an official <a href="https://docs.djangoproject.com/en/1.8/ref/contrib/gis/tutorial/">tutorial</a>
 that will get you there better than I could), there are a couple of things to mention.</p>
@@ -122,7 +84,7 @@ CREATE EXTENSION
 
 <h5>Creating an Index View</h5>
 <p>For this step of the project, all I'll be doing is getting started on the
-home page. I've already set up a Waypoints app within my lost and hound project, but
+home page. I've already set up my app (waypoints) within my project (lost and hound), but
 I won't be doing anything with it yet. Since my index view doesn't neatly correspond 
 with what the waypoints application will be used for, 
 I'd rather put it in the root of the project.
@@ -153,8 +115,7 @@ level as my settings.py in the lost_and_hound project folder:</p>
 </pre></div>
 
 
-<p>but, since for now all of the dynamic content will be handled in my template 
-(this will change once I need to grab post coordinates from my db and map them), 
+<p>but, since for now all of the dynamic content will be handled in my template, 
 I'll use Django's TemplateView directly, a Generic Class Based View which 
 basically just renders a given template when a specific view is requested, 
 and spares me from having to actually write any new views.</p>
@@ -175,7 +136,7 @@ and add the following to your urlpatterns:</p>
 <p>The as_view() classmethod is what makes the TemplateView
 callable, so when the index page is requested, it will be 
 matched to the index view, which is really just a callable version of TemplateView 
-that renders the index.html template upon request.</p>
+that renders my template upon request.</p>
 <p>Now to the mapping...</p>
 <h4>Initializing a map with Django-Leaflet and Mapbox</h4>
 <p>I'm using <a href="https://github.com/makinacorpus/django-leaflet">Django-Leaflet</a>
